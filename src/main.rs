@@ -10,16 +10,13 @@ fn main() {
 
     // assign/call build method whose arg are env args
     let config = Config::build(&args).unwrap_or_else(|err| {
-        println!("problem parsing args: {err}");
+        eprintln!("problem parsing args: {err}");
         process::exit(1);
     });
 
-    println!("Searching for {}", config.query);
-    println!("In file {}", config.file_path);
-
     // if run(config) == Err(e) do what is in braces
     if let Err(e) = puny_grep::run(config) {
-        println!("Application error: {e}");
+        eprintln!("Application error: {e}");
         process::exit(1);
     }
 }
