@@ -10,15 +10,24 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn build(args: &[String]) -> Result<Config, &'static str> {
-        //env requires at least 2 args
-        if args.len() < 3 {
-            // our Result<&'static str>
-            return Err("\x1b[31mNot Enough Args\x1b[0m");
-        }
+    //method that takes a arg with Iterator<Item = String> trait
+    pub fn build(mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {
+        //skips first env arg, because it is the path
+        args.next();
 
-        let query = args[1].clone();
-        let file_path = args[2].clone();
+        //gets 2nd env arg for Config.query
+        //value is extracted if Some, returns early with Err if None
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("didnt get query string"),
+        };
+
+        //same as above but for file path
+        let file_path = match args.next() {
+            Some(arg) => arg,
+            None => return Err("didnt get file path"),
+        };
+
         let ignore_case = env::var("IGNORE_CASE").is_ok();
 
         // our Result<Config>
@@ -60,27 +69,22 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
 #[allow(unused_variables)]
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<(usize, &'a str)> {
-    let mut res = Vec::new();
-
-    for line in contents.lines().enumerate() {
-        if line.1.contains(query) {
-            res.push(line);
-        }
-    }
-    res // this Vec<&str> is returned and looped in run()
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .enumerate()
+        .collect()
 }
 
 #[allow(unused_variables)]
 pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<(usize, &'a str)> {
-    let query = query.to_lowercase();
-    let mut res = Vec::new();
+    let query = &query.to_lowercase();
 
-    for line in contents.lines().enumerate() {
-        if line.1.to_lowercase().contains(&query) {
-            res.push(line);
-        }
-    }
-    res // this Vec<&str> is returned and looped in run()
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .enumerate()
+        .collect()
 }
 
 #[cfg(test)]
@@ -96,7 +100,7 @@ safe, fast, productive.
 Duct tape.";
 
         assert_eq!(
-            vec![(1, "safe, fast, productive.")],
+            vec![(0, "safe, fast, productive.")],
             search(query, contents)
         )
     }
@@ -108,10 +112,12 @@ Duct tape.";
 Rust:
 safe, fast, productive.
 Pick three.
-Trust me.";
+Trust me.
+Crust are crusty";
 
+        // note our test now skip first line
         assert_eq!(
-            vec![(0, "Rust:"), (3, "Trust me.")],
+            vec![(0, "Trust me."), (1, "Crust are crusty")],
             search_case_insensitive(query, contents)
         )
     }

@@ -4,12 +4,7 @@ use std::process;
 use puny_grep::Config;
 
 fn main() {
-    // get env args and collect
-    // need to provide types for collect()
-    let args: Vec<String> = env::args().collect();
-
-    // assign/call build method whose arg are env args
-    let config = Config::build(&args).unwrap_or_else(|err| {
+    let config = Config::build(env::args()).unwrap_or_else(|err| {
         eprintln!("problem parsing args: {err}");
         process::exit(1);
     });
